@@ -114,6 +114,7 @@ require('bugpack').context("*", function(bugpack) {
          * @param {number} tick
          */
         doCalculateBitForTick: function(tick) {
+            this.ensureChildSelected();
             return this.selectedChildNeuron.getBitForTick(tick);
         },
 
@@ -130,13 +131,20 @@ require('bugpack').context("*", function(bugpack) {
                     _this.ensureChildren(callback);
                 },
                 function(callback) {
-                    _this.ensureChildSelected();
-                    _this.ensureTick(currentTrainingTick, callback);
-                },
-                function(callback) {
                     _this.processTrainingContextSet(trainingContextSet, currentTrainingTick, callback);
                 }
             ]).callback(callback);
+        },
+
+        /**
+         * @protected
+         * @param {Neuron} neuron
+         */
+        doRemoveChildNeuron: function(neuron) {
+            this._super(neuron);
+            if (Obj.equals(this.selectedChildNeuron, neuron)) {
+                this.selectedChildNeuron = null;
+            }
         },
 
 
@@ -189,7 +197,8 @@ require('bugpack').context("*", function(bugpack) {
          * @param {NeuralLayer} neuralLayer
          */
         addNumberRandomChildNeuronsFromLayer: function(maxNumberRandomNeurons, neuralLayer) {
-            var selectableNeurons = neuralLayer.getAttachedNeuronList().clone().removeAll(this.getChildNeuronList());
+            var selectableNeurons = neuralLayer.getAttachedNeuronList().clone();
+            selectableNeurons.removeAll(this.getChildNeuronList());
             if (selectableNeurons.getCount() < maxNumberRandomNeurons) {
                 maxNumberRandomNeurons = selectableNeurons.getCount();
             }
@@ -273,7 +282,6 @@ require('bugpack').context("*", function(bugpack) {
                 throw Throwables.error("IllegalState", {}, "OutputNeuron has more than one trainingContext. This should not happen.");
             }
             var _this                   = this;
-            var bit                     = this.getBitForTick(currentTrainingTick);
             var trainingContext         = trainingContextSet.toArray()[0];
             var trainingBit             = trainingContext.getTrainingBit();
             var matchList               = Collections.list();
@@ -282,29 +290,33 @@ require('bugpack').context("*", function(bugpack) {
             $series([
                 $forEachParallel(this.getChildNeuronList(), function(callback, childNeuron) {
                     childNeuron.feedTrainingBitFromNeuronForTick(trainingBit, _this, currentTrainingTick, function(throwable, trainingResult) {
-                        switch (trainingResult) {
-                            case Neuron.TrainingResult.ALREADY_TRAINED:
-                                var neuronBit = childNeuron.getBitForTick(currentTrainingTick);
-                                if (neuronBit === trainingBit) {
+                        if (!throwable) {
+                            switch (trainingResult) {
+                                case Neuron.TrainingResult.ALREADY_TRAINED:
+                                    var neuronBit = childNeuron.getBitForTick(currentTrainingTick);
+                                    if (neuronBit === trainingBit) {
+                                        matchList.add(childNeuron);
+                                    }
+                                    break;
+                                case Neuron.TrainingResult.MATCH:
                                     matchList.add(childNeuron);
-                                }
-                                break;
-                            case Neuron.TrainingResult.MATCH:
-                                matchList.add(childNeuron);
-                                break;
-                            case Neuron.TrainingResult.MUTATED:
-                                mutatedList.add(childNeuron);
-                                break;
-                            case Neuron.TrainingResult.REJECTED:
-                                if (Obj.equals(_this.selectedChildNeuron, childNeuron)) {
-                                    _this.selectedChildNeuron = null;
-                                }
-                                _this.removeChildNeuron(childNeuron);
-                                break;
+                                    break;
+                                case Neuron.TrainingResult.MUTATED:
+                                    mutatedList.add(childNeuron);
+                                    break;
+                                case Neuron.TrainingResult.REJECTED:
+                                    _this.removeChildNeuron(childNeuron);
+                                    break;
+                            }
                         }
+                        callback(throwable);
                     });
                 }),
                 function(callback) {
+                    _this.ensureTick(currentTrainingTick, callback);
+                },
+                function(callback) {
+                    var bit = _this.getBitForTick(currentTrainingTick);
                     if (!_this.selectedChildNeuron || !matchList.contains(_this.selectedChildNeuron)) {
                         if (matchList.getCount() > 0) {
                             _this.selectRandomChildFromNeuronList(matchList);

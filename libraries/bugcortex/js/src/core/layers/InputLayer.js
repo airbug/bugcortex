@@ -15,8 +15,8 @@
 //@Require('Collections')
 //@Require('Throwables')
 //@Require('bugcortex.INeuralInput')
-//@Require('bugcortex.NeuralLayer')
 //@Require('bugcortex.InputNeuron')
+//@Require('bugcortex.NeuralLayer')
 
 
 //-------------------------------------------------------------------------------
@@ -33,8 +33,8 @@ require('bugpack').context("*", function(bugpack) {
     var Collections     = bugpack.require('Collections');
     var Throwables      = bugpack.require('Throwables');
     var INeuralInput    = bugpack.require('bugcortex.INeuralInput');
-    var NeuralLayer     = bugpack.require('bugcortex.NeuralLayer');
     var InputNeuron     = bugpack.require('bugcortex.InputNeuron');
+    var NeuralLayer     = bugpack.require('bugcortex.NeuralLayer');
 
 
     //-------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ require('bugpack').context("*", function(bugpack) {
          * @return {Neuron}
          */
         generateNeuron: function() {
-            return InputNeuron(this);
+            return new InputNeuron(this);
         },
 
 

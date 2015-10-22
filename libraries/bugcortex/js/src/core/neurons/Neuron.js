@@ -15,6 +15,7 @@
 //@Require('Collections')
 //@Require('Event')
 //@Require('EventDispatcher')
+//@Require('Obj')
 //@Require('Throwables')
 //@Require('bugcortex.INeuron')
 //@Require('bugcortex.TrainingContext')
@@ -34,6 +35,7 @@ require('bugpack').context("*", function(bugpack) {
     var Collections         = bugpack.require('Collections');
     var Event               = bugpack.require('Event');
     var EventDispatcher     = bugpack.require('EventDispatcher');
+    var Obj                 = bugpack.require('Obj');
     var Throwables          = bugpack.require('Throwables');
     var INeuron             = bugpack.require('bugcortex.INeuron');
     var TrainingContext     = bugpack.require('bugcortex.TrainingContext');
@@ -450,6 +452,7 @@ require('bugpack').context("*", function(bugpack) {
             if (!neuron.containsParentNeuron(this)) {
                 neuron.addParentNeuron(this);
             }
+            neuron.addEventListener(Neuron.EventTypes.TICK, this.hearChildNeuronTick, this);
             this.checkAndProcessReadyToTick();
         },
 
@@ -474,6 +477,7 @@ require('bugpack').context("*", function(bugpack) {
             if (neuron.containsParentNeuron(this)) {
                 neuron.removeParentNeuron(this);
             }
+            neuron.removeEventListener(Neuron.EventTypes.TICK, this.hearChildNeuronTick, this);
             this.checkAndProcessReadyToTick();
         },
 
@@ -567,6 +571,27 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
+         * @param {Neuron} neuron
+         * @param {number} trainingTick
+         * @returns {boolean}
+         */
+        hasTrainingContextForNeuronAtTrainingTick: function(neuron, trainingTick) {
+            var trainingContextSet  = this.tickToTrainingContextSetMap.get(trainingTick);
+            if (!trainingContextSet) {
+                return false;
+            }
+            var iterator = trainingContextSet.iterator();
+            while (iterator.hasNext()) {
+                var trainingContext = iterator.next();
+                if (Obj.equals(trainingContext.getNeuron(), neuron)) {
+                    return true;
+                }
+            }
+            return false
+        },
+
+        /**
+         * @private
          * @return {boolean}
          */
         isReadyToTick: function() {
@@ -589,12 +614,29 @@ require('bugpack').context("*", function(bugpack) {
             var nextTrainingTick    = this.currentTrainingTick + 1;
             var iterator            = this.parentNeuronList.iterator();
             while (iterator.hasNext()) {
-                var neuron = iterator.nextValue();
+                /** @type {Neuron} */
+                var neuron = /** @type {Neuron} */(iterator.nextValue());
                 if (neuron.getCurrentTrainingTick() < nextTrainingTick) {
+                    return false;
+                }
+                if (!this.hasTrainingContextForNeuronAtTrainingTick(neuron, nextTrainingTick)) {
                     return false;
                 }
             }
             return true;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Event Listeners
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @param {Event} event
+         */
+        hearChildNeuronTick: function(event) {
+            this.checkAndProcessReadyToTick();
         }
     });
 

@@ -177,7 +177,7 @@ require('bugpack').context("*", function(bugpack) {
                 throw Throwables.illegalArgumentBug("neuralOutputLayer", neuralOutputLayer, "neuralOutputLayer must implement INeuralOutput");
             }
             if (!this.neuralOutputBidiMap.containsKey(name) && !this.neuralOutputBidiMap.containsValue(neuralOutputLayer)) {
-                this.neuralInputBidiMap.put(name, neuralOutputLayer);
+                this.neuralOutputBidiMap.put(name, neuralOutputLayer);
                 neuralOutputLayer.addEventListener(OutputLayer.EventTypes.OUTPUT_VALUE, this.hearLayerOutputValue, this);
                 neuralOutputLayer.attach();
             }

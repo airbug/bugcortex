@@ -46,9 +46,9 @@ var uglifyjs            = enableModule("uglifyjs");
 //-------------------------------------------------------------------------------
 
 var name                = "bugcortex";
-var version             = "0.0.1";
+var version             = "0.0.2";
 var dependencies        = {
-    bugpack: "0.2.0"
+    bugpack: "0.2.1"
 };
 
 

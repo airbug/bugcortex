@@ -15,8 +15,8 @@
 //@Require('Collections')
 //@Require('Obj')
 //@Require('Throwables')
-//@Require('bugcortex.IOuterLayer')
 //@Require('bugcortex.INeuron')
+//@Require('bugcortex.IOuterLayer')
 //@Require('bugcortex.NeuralLayer')
 
 
@@ -30,14 +30,14 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Class               = bugpack.require('Class');
-    var Collections         = bugpack.require('Collections');
-    var Obj                 = bugpack.require('Obj');
-    var Throwables          = bugpack.require('Throwables');
-    var IOuterLayer         = bugpack.require('bugcortex.IOuterLayer');
-    var INeuralLayer        = bugpack.require('bugcortex.INeuralLayer');
-    var INeuron             = bugpack.require('bugcortex.INeuron');
-    var NeuralLayer         = bugpack.require('bugcortex.NeuralLayer');
+    var Class           = bugpack.require('Class');
+    var Collections     = bugpack.require('Collections');
+    var Obj             = bugpack.require('Obj');
+    var Throwables      = bugpack.require('Throwables');
+    var INeuralLayer    = bugpack.require('bugcortex.INeuralLayer');
+    var INeuron         = bugpack.require('bugcortex.INeuron');
+    var IOuterLayer     = bugpack.require('bugcortex.IOuterLayer');
+    var NeuralLayer     = bugpack.require('bugcortex.NeuralLayer');
 
 
     //-------------------------------------------------------------------------------
@@ -99,8 +99,7 @@ require('bugpack').context("*", function(bugpack) {
          */
         addSubLayer: function(neuralSubLayer) {
             if (!this.neuralSubLayerList.contains(neuralSubLayer)) {
-                this.neuralSubLayerList.add(neuralSubLayer);
-                this.doAttachSubLayer(neuralSubLayer);
+                this.doAddSubLayer(neuralSubLayer);
             }
         },
 
@@ -119,9 +118,10 @@ require('bugpack').context("*", function(bugpack) {
          */
         removeSubLayer: function(neuralSubLayer) {
             this.neuralSubLayerList.remove(neuralSubLayer);
-            neuralSubLayer.forEachNeuron(function(neuron) {
-                neuron.detach();
-            });
+            //TODO BRN: the connections between this layer's neurons and the sublayers neurons needs to be separated, but that does not mean that
+            //all neurons on the sublayer need to be detached. (could belong to multiple OuterLayers). Plus we don't want those neurons to separate
+            // from their children, just the parents that belong to this layer.
+
         },
 
 
@@ -130,12 +130,12 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         /**
-         * @abstract
          * @protected
-         * @param neuralSubLayer
+         * @param {INeuralLayer} neuralSubLayer
          */
-        doAttachSubLayer: function(neuralSubLayer) {
-            throw Throwables.bug("AbstractMethodNotImplemented", {}, "Must implement OuterLayer.doAttachSubLayer");
+        doAddSubLayer: function(neuralSubLayer) {
+            this.neuralSubLayerList.add(neuralSubLayer);
+
         }
 
 

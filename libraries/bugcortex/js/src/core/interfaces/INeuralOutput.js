@@ -25,8 +25,8 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Interface           = bugpack.require('Interface');
-    var IOuterLayer    = bugpack.require('bugcortex.IOuterLayer');
+    var Interface       = bugpack.require('Interface');
+    var IOuterLayer     = bugpack.require('bugcortex.IOuterLayer');
 
 
     //-------------------------------------------------------------------------------

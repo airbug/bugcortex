@@ -13,11 +13,13 @@
 
 //@Require('Class')
 //@Require('Collections')
+//@Require('Event')
 //@Require('Flows')
 //@Require('Throwables')
 //@Require('bugcortex.INeuralOutput')
 //@Require('bugcortex.NeuralLayer')
 //@Require('bugcortex.Neuron')
+//@Require('bugcortex.OuterLayer')
 //@Require('bugcortex.OutputNeuron')
 
 
@@ -33,11 +35,13 @@ require('bugpack').context("*", function(bugpack) {
 
     var Class               = bugpack.require('Class');
     var Collections         = bugpack.require('Collections');
+    var Event               = bugpack.require('Event');
     var Flows               = bugpack.require('Flows');
     var Throwables          = bugpack.require('Throwables');
     var INeuralOutput       = bugpack.require('bugcortex.INeuralOutput');
     var NeuralLayer         = bugpack.require('bugcortex.NeuralLayer');
     var Neuron              = bugpack.require('bugcortex.Neuron');
+    var OuterLayer          = bugpack.require('bugcortex.OuterLayer');
     var OutputNeuron        = bugpack.require('bugcortex.OutputNeuron');
 
 
@@ -54,11 +58,11 @@ require('bugpack').context("*", function(bugpack) {
 
     /**
      * @class
-     * @extends {NeuralLayer}
+     * @extends {OuterLayer}
      * @implements {INeuralOutput.<I>}
      * @template I
      */
-    var OutputLayer = Class.extend(NeuralLayer, {
+    var OutputLayer = Class.extend(OuterLayer, {
 
         _name: "bugcortex.OutputLayer",
 
@@ -197,7 +201,7 @@ require('bugpack').context("*", function(bugpack) {
          * @return {Neuron}
          */
         generateNeuron: function() {
-            return OutputNeuron(this);
+            return new OutputNeuron(this);
         },
 
 
