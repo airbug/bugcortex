@@ -121,7 +121,6 @@ require('bugpack').context("*", function(bugpack) {
         },
 
         /**
-         * @private
          * @return {number}
          */
         getCurrentTrainingTick: function() {

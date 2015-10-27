@@ -126,6 +126,44 @@ require('bugpack').context("*", function(bugpack) {
 
 
         //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @return {boolean}
+         */
+        hasUsableSubLayers: function() {
+            return this.retrieveAttachedSubLayers().getCount() > 0;
+        },
+
+        /**
+         * @return {List.<NeuralLayer>}
+         */
+        retrieveAttachedSubLayers: function() {
+            var subLayerList = this.getNeuralSubLayerList().clone();
+            subLayerList.forEach(function(subLayer) {
+                if (subLayer.isDetached()) {
+                    subLayerList.remove(subLayer);
+                }
+            });
+            return subLayerList;
+        },
+
+        /**
+         * @return {List.<NeuralLayer>}
+         */
+        retrieveAttachedSubLayersWithNeurons: function() {
+            var subLayerList = this.retrieveAttachedSubLayers();
+            subLayerList.forEach(function(subLayer) {
+                if (subLayer.getAttachedNeuronList().getCount() <= 0) {
+                    subLayerList.remove(subLayer);
+                }
+            });
+            return subLayerList;
+        },
+
+
+        //-------------------------------------------------------------------------------
         // Protected Methods
         //-------------------------------------------------------------------------------
 
@@ -135,7 +173,6 @@ require('bugpack').context("*", function(bugpack) {
          */
         doAddSubLayer: function(neuralSubLayer) {
             this.neuralSubLayerList.add(neuralSubLayer);
-
         }
 
 

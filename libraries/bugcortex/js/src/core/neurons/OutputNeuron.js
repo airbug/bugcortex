@@ -17,7 +17,6 @@
 //@Require('Obj')
 //@Require('RandomUtil')
 //@Require('Throwables')
-//@Require('bugcortex.NeuralLayerEvent')
 //@Require('bugcortex.Neuron')
 
 
@@ -37,7 +36,6 @@ require('bugpack').context("*", function(bugpack) {
     var Obj                 = bugpack.require('Obj');
     var RandomUtil          = bugpack.require('RandomUtil');
     var Throwables          = bugpack.require('Throwables');
-    var NeuralLayerEvent    = bugpack.require('bugcortex.NeuralLayerEvent');
     var Neuron              = bugpack.require('bugcortex.Neuron');
 
 
@@ -68,7 +66,7 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {INeuralLayer} neuralLayer
+         * @param {OutputLayer} neuralLayer
          */
         _constructor: function(neuralLayer) {
 
@@ -128,9 +126,6 @@ require('bugpack').context("*", function(bugpack) {
             var _this = this;
             $series([
                 function(callback) {
-                    _this.ensureChildren(callback);
-                },
-                function(callback) {
                     _this.processTrainingContextSet(trainingContextSet, currentTrainingTick, callback);
                 }
             ]).callback(callback);
@@ -171,71 +166,6 @@ require('bugpack').context("*", function(bugpack) {
         /**
          * @private
          */
-        addRandomChildNeurons: function() {
-            var _this = this;
-            var subLayerList = this.retrieveAttachedSubLayersWithNeurons();
-            if (subLayerList.getCount() > 0) {
-                var maxNumberRandomNeurons = 2;
-                subLayerList.forEach(function(subLayer) {
-                    _this.addNumberRandomChildNeuronsFromLayer(maxNumberRandomNeurons, subLayer);
-                });
-            }
-        },
-
-        /**
-         * @private
-         * @param {List.<Neuron>} neuronList
-         */
-        addRandomChildNeuronFromNeuronList: function(neuronList) {
-            var index = RandomUtil.randomBetween(0, neuronList.getCount() - 1);
-            this.addChildNeuron(neuronList.removeAt(index));
-        },
-
-        /**
-         * @private
-         * @param {number} maxNumberRandomNeurons
-         * @param {NeuralLayer} neuralLayer
-         */
-        addNumberRandomChildNeuronsFromLayer: function(maxNumberRandomNeurons, neuralLayer) {
-            var selectableNeurons = neuralLayer.getAttachedNeuronList().clone();
-            selectableNeurons.removeAll(this.getChildNeuronList());
-            if (selectableNeurons.getCount() < maxNumberRandomNeurons) {
-                maxNumberRandomNeurons = selectableNeurons.getCount();
-            }
-            for (var i = 0; i < maxNumberRandomNeurons; i++) {
-                this.addRandomChildNeuronFromNeuronList(selectableNeurons);
-            }
-        },
-
-        /**
-         * @private
-         * @param {function(Throwable=)} callback
-         */
-        ensureChildren: function(callback) {
-            var _this = this;
-            if (this.getChildNeuronList().getCount() <= 0) {
-                if (!this.hasUsableSubLayers()) {
-                    return callback(Throwables.exception("NoUsableSubLayers", {}, "Could not find any usable sub layers that have neurons"))
-                }
-                this.addRandomChildNeurons();
-                if (this.getChildNeuronList().getCount() <= 0) {
-                    this.stimulateSubLayerGrowthAndWaitForChildren(function(throwable) {
-                        if (!throwable) {
-                            _this.addRandomChildNeurons();
-                        }
-                        callback(throwable);
-                    });
-                } else {
-                    callback();
-                }
-            } else {
-                callback();
-            }
-        },
-
-        /**
-         * @private
-         */
         ensureChildSelected: function() {
             if (!this.selectedChildNeuron) {
                 this.selectRandomChildFromNeuronList(this.getChildNeuronList());
@@ -264,14 +194,6 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
-         * @return {boolean}
-         */
-        hasUsableSubLayers: function() {
-            return this.retrieveAttachedSubLayers().getCount() > 0;
-        },
-
-        /**
-         * @private
          * @param {Set.<TrainingContext>} trainingContextSet
          * @param {number} currentTrainingTick
          * @param {function(Throwable=)} callback
@@ -286,6 +208,7 @@ require('bugpack').context("*", function(bugpack) {
             var trainingBit             = trainingContext.getTrainingBit();
             var matchList               = Collections.list();
             var mutatedList             = Collections.list();
+            var rejectedList            = Collections.list();
 
             $series([
                 $forEachParallel(this.getChildNeuronList(), function(callback, childNeuron) {
@@ -305,7 +228,7 @@ require('bugpack').context("*", function(bugpack) {
                                     mutatedList.add(childNeuron);
                                     break;
                                 case Neuron.TrainingResult.REJECTED:
-                                    _this.removeChildNeuron(childNeuron);
+                                    rejectedList.add(rejectedList);
                                     break;
                             }
                         }
@@ -317,6 +240,11 @@ require('bugpack').context("*", function(bugpack) {
                 },
                 function(callback) {
                     var bit = _this.getBitForTick(currentTrainingTick);
+                    rejectedList.forEach(function(childNeuron) {
+                        if (_this.getChildNeuronList().getCount() > 1) {
+                            _this.removeChildNeuron(childNeuron);
+                        }
+                    });
                     if (!_this.selectedChildNeuron || !matchList.contains(_this.selectedChildNeuron)) {
                         if (matchList.getCount() > 0) {
                             _this.selectRandomChildFromNeuronList(matchList);
@@ -339,55 +267,11 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
-         * @return {List.<NeuralLayer>}
-         */
-        retrieveAttachedSubLayers: function() {
-            /** @type {OuterLayer} */
-            var neuralLayer = /** @type {OuterLayer} */(this.getNeuralLayer());
-            var subLayerList = neuralLayer.getNeuralSubLayerList().clone();
-            subLayerList.forEach(function(subLayer) {
-                if (subLayer.isDetached()) {
-                    subLayerList.remove(subLayer);
-                }
-            });
-            return subLayerList;
-        },
-
-        /**
-         * @private
-         * @return {List.<NeuralLayer>}
-         */
-        retrieveAttachedSubLayersWithNeurons: function() {
-            var subLayerList = this.retrieveAttachedSubLayers();
-            subLayerList.forEach(function(subLayer) {
-                if (subLayer.getAttachedNeuronList().getCount() <= 0) {
-                    subLayerList.remove(subLayer);
-                }
-            });
-            return subLayerList;
-        },
-
-        /**
-         * @private
          * @param {List.<Neuron>} neuronList
          */
         selectRandomChildFromNeuronList: function(neuronList) {
             var index = RandomUtil.randomBetween(0, neuronList.getCount() - 1);
             this.selectedChildNeuron = neuronList.getAt(index);
-        },
-
-        /**
-         * @private
-         * @param {function(Throwable=)} callback
-         */
-        stimulateSubLayerGrowthAndWaitForChildren: function(callback) {
-            var subLayerList = this.retrieveAttachedSubLayers();
-            $forEachParallel(subLayerList, function(callback, subLayer) {
-                subLayer.addEventListener(NeuralLayerEvent.EventTypes.GROW, function(event) {
-                    callback();
-                });
-                subLayer.stimulateGrowth();
-            }).callback(callback);
         }
     });
 

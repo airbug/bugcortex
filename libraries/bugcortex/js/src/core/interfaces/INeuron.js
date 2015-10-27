@@ -110,6 +110,16 @@ require('bugpack').context("*", function(bugpack) {
         isDetached: function() {},
 
         /**
+         * @return {boolean}
+         */
+        isSeeded: function() {},
+
+        /**
+         * @return {boolean}
+         */
+        isSeeding: function() {},
+
+        /**
          *
          */
         kill: function() {},
@@ -133,6 +143,11 @@ require('bugpack').context("*", function(bugpack) {
          * @param {INeuron} neuron
          */
         removeParentNeuron: function(neuron) {},
+
+        /**
+         *
+         */
+        seed: function() {},
 
         /**
          *

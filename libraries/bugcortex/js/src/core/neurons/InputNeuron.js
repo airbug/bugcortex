@@ -53,11 +53,11 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {INeuralLayer} neuralLayer
+         * @param {InputLayer} inputLayer
          */
-        _constructor: function(neuralLayer) {
+        _constructor: function(inputLayer) {
 
-            this._super(neuralLayer);
+            this._super(inputLayer);
 
 
             //-------------------------------------------------------------------------------
@@ -69,6 +69,23 @@ require('bugpack').context("*", function(bugpack) {
              * @type {Map.<number, number>}
              */
             this.tickToInputBitMap = Collections.map();
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Init Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {InputLayer} inputLayer
+         * @return {InputNeuron}
+         */
+        init: function(inputLayer) {
+            var _this = this._super(inputLayer);
+            if (_this) {
+                _this.seedState = Neuron.SeedState.SEEDED;
+            }
+            return _this;
         },
 
 
@@ -94,6 +111,7 @@ require('bugpack').context("*", function(bugpack) {
          */
         feedNeuronInputBitForTick: function(inputBit, tick) {
             this.tickToInputBitMap.put(tick, inputBit);
+            this.seedCurrentTick(tick - 1);
             this.checkAndProcessReadyToTick();
         },
 
@@ -133,6 +151,13 @@ require('bugpack').context("*", function(bugpack) {
             } else {
                 this.processTrainingContextSet(trainingContextSet, currentTrainingTick, callback);
             }
+        },
+
+        /**
+         * @protected
+         */
+        doSeeding: function() {
+            throw Throwables.error("IllegalState", {}, "This should not be called in InputNeuron");
         },
 
 
