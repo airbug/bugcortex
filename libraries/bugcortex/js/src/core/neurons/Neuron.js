@@ -187,6 +187,13 @@ require('bugpack').context("*", function(bugpack) {
         },
 
         /**
+         * @return {number}
+         */
+        getEarliestTick: function() {
+            return this.earliestTick;
+        },
+
+        /**
          * @return {Neuron.LifeState}
          */
         getLifeState: function() {
@@ -464,6 +471,34 @@ require('bugpack').context("*", function(bugpack) {
             ]).callback(callback);
         },
 
+        /**
+         * @param {number} tick
+         * @return {List.<Neuron>}
+         */
+        retrieveChildNeuronsWithEarliestTickBeforeTick: function(tick) {
+            var childList = Collections.list();
+            this.getChildNeuronList().forEach(function(childNeuron) {
+                if (childNeuron.getEarliestTick() <= tick) {
+                    childList.add(childNeuron);
+                }
+            });
+            return childList;
+        },
+
+        /**
+         * @param {number} tick
+         * @return {List.<Neuron>}
+         */
+        retrieveParentNeuronsWithEarliestTickBeforeTick: function(tick) {
+            var parentList = Collections.list();
+            this.getParentNeuronList().forEach(function(parentNeuron) {
+                if (parentNeuron.getEarliestTick() <= tick) {
+                    parentList.add(parentNeuron);
+                }
+            });
+            return parentList;
+        },
+
 
         //-------------------------------------------------------------------------------
         // Protected Methods
@@ -563,7 +598,7 @@ require('bugpack').context("*", function(bugpack) {
                 this.getChildNeuronList().forEach(function (childNeuron) {
                     var childCurrentTick = childNeuron.getCurrentTick();
                     if (childCurrentTick !== null) {
-                        if (childCurrentTick < lowestTick) {
+                        if (lowestTick === null || childCurrentTick < lowestTick) {
                             if (childCurrentTick === -1) {
                                 lowestTick = -1;
                             } else {
@@ -623,7 +658,7 @@ require('bugpack').context("*", function(bugpack) {
                     tick: currentTick
                 }));
             } else {
-                throw Throwables.error("BadBit", {}, "Bad bit value received from call to doCalculateBitForTick");
+                throw Throwables.bug("BadBit", {}, "Bad bit value received from call to doCalculateBitForTick");
             }
         },
 
@@ -838,7 +873,7 @@ require('bugpack').context("*", function(bugpack) {
                 return false;
             }
             var nextTick    = this.currentTick + 1;
-            var iterator    = this.childNeuronList.iterator();
+            var iterator    = this.retrieveChildNeuronsWithEarliestTickBeforeTick(nextTick).iterator();
             while (iterator.hasNext()) {
                 var neuron = iterator.nextValue();
                 if (neuron.getCurrentTick() < nextTick) {
@@ -857,7 +892,7 @@ require('bugpack').context("*", function(bugpack) {
                 return false;
             }
             var nextTrainingTick    = this.currentTrainingTick + 1;
-            var iterator            = this.parentNeuronList.iterator();
+            var iterator            = this.retrieveParentNeuronsWithEarliestTickBeforeTick(nextTrainingTick).iterator();
             while (iterator.hasNext()) {
                 /** @type {Neuron} */
                 var neuron = /** @type {Neuron} */(iterator.nextValue());

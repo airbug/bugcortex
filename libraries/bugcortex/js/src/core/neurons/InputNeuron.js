@@ -157,7 +157,7 @@ require('bugpack').context("*", function(bugpack) {
          * @protected
          */
         doSeeding: function() {
-            throw Throwables.error("IllegalState", {}, "This should not be called in InputNeuron");
+            throw Throwables.bug("IllegalState", {}, "This should not be called in InputNeuron");
         },
 
 

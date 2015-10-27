@@ -112,7 +112,7 @@ require('bugpack').context("*", function(bugpack) {
          * @param {number} tick
          */
         doCalculateBitForTick: function(tick) {
-            this.ensureChildSelected();
+            this.ensureChildSelectedForTick(tick);
             return this.selectedChildNeuron.getBitForTick(tick);
         },
 
@@ -165,10 +165,11 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
+         * @param {number} tick
          */
-        ensureChildSelected: function() {
+        ensureChildSelectedForTick: function(tick) {
             if (!this.selectedChildNeuron) {
-                this.selectRandomChildFromNeuronList(this.getChildNeuronList());
+                this.selectRandomChildFromNeuronList(this.retrieveChildNeuronsWithEarliestTickBeforeTick(tick));
             }
         },
 
@@ -201,7 +202,7 @@ require('bugpack').context("*", function(bugpack) {
         processTrainingContextSet: function(trainingContextSet, currentTrainingTick, callback) {
             //NOTE BRN: Since the OutputNeuron is providing itself feedback, there should only be one trainingContext.
             if (trainingContextSet.getCount() > 1) {
-                throw Throwables.error("IllegalState", {}, "OutputNeuron has more than one trainingContext. This should not happen.");
+                throw Throwables.bug("IllegalState", {}, "OutputNeuron has more than one trainingContext. This should not happen.");
             }
             var _this                   = this;
             var trainingContext         = trainingContextSet.toArray()[0];
@@ -209,9 +210,10 @@ require('bugpack').context("*", function(bugpack) {
             var matchList               = Collections.list();
             var mutatedList             = Collections.list();
             var rejectedList            = Collections.list();
+            var childNeuronList         = this.retrieveChildNeuronsWithEarliestTickBeforeTick(currentTrainingTick);
 
             $series([
-                $forEachParallel(this.getChildNeuronList(), function(callback, childNeuron) {
+                $forEachParallel(childNeuronList, function(callback, childNeuron) {
                     childNeuron.feedTrainingBitFromNeuronForTick(trainingBit, _this, currentTrainingTick, function(throwable, trainingResult) {
                         if (!throwable) {
                             switch (trainingResult) {
@@ -241,8 +243,9 @@ require('bugpack').context("*", function(bugpack) {
                 function(callback) {
                     var bit = _this.getBitForTick(currentTrainingTick);
                     rejectedList.forEach(function(childNeuron) {
-                        if (_this.getChildNeuronList().getCount() > 1) {
+                        if (childNeuronList.getCount() > 1) {
                             _this.removeChildNeuron(childNeuron);
+                            childNeuronList.remove(childNeuron);
                         }
                     });
                     if (!_this.selectedChildNeuron || !matchList.contains(_this.selectedChildNeuron)) {
@@ -251,7 +254,7 @@ require('bugpack').context("*", function(bugpack) {
                         } else if (mutatedList.getCount() > 0) {
                             _this.selectRandomChildFromNeuronList(mutatedList);
                         } else {
-                            _this.selectRandomChildFromNeuronList(_this.getChildNeuronList());
+                            _this.selectRandomChildFromNeuronList(childNeuronList);
                         }
                     }
 
