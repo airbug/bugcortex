@@ -90,6 +90,12 @@ require('bugpack').context("*", function(bugpack) {
              * @type {List.<INeuron>}
              */
             this.neuronList             = Collections.list();
+
+            /**
+             * @private
+             * @type {NeuronProcessor}
+             */
+            this.neuronProcessor        = null;
         },
 
 
@@ -118,6 +124,24 @@ require('bugpack').context("*", function(bugpack) {
             return this.neuronList;
         },
 
+        /**
+         * @return {NeuronProcessor}
+         */
+        getNeuronProcessor: function() {
+            return this.neuronProcessor;
+        },
+
+        /**
+         * @param {NeuronProcessor} neuronProcessor
+         */
+        setNeuronProcessor: function(neuronProcessor) {
+            if (this.neuronProcessor) {
+                this.neuronProcessor.removeAllNeurons(this.neuronList);
+            }
+            this.neuronProcessor = neuronProcessor;
+            this.neuronProcessor.addAllNeurons(this.neuronList);
+        },
+
 
         //-------------------------------------------------------------------------------
         // Convenience Methods
@@ -135,6 +159,28 @@ require('bugpack').context("*", function(bugpack) {
          */
         isDetached: function() {
             return this.attachmentState === NeuralLayer.AttachmentState.DETACHED;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {number} bit
+         * @param {number} tick
+         * @return {Set.<Neuron>}
+         */
+        retrieveAttachedNeuronsWithBitAtTick: function(bit, tick) {
+            var neuronSet = Collections.set();
+            this.attachedNeuronList.forEach(function(neuron) {
+                if (neuron.hasBitForTick(tick)) {
+                    if (neuron.getBitForTick(tick) === bit) {
+                        neuronSet.add(neuron);
+                    }
+                }
+            });
+            return neuronSet;
         },
 
 
@@ -163,6 +209,7 @@ require('bugpack').context("*", function(bugpack) {
                 this.neuronList.forEach(function(neuron) {
                     neuron.detach();
                 });
+                this.neuronProcessor = null;
             }
         },
 
@@ -255,10 +302,11 @@ require('bugpack').context("*", function(bugpack) {
          */
         doAddNeuron: function(neuron) {
             this.neuronList.add(neuron);
+            if (this.neuronProcessor) {
+                this.neuronProcessor.addNeuron(neuron);
+            }
             neuron.addEventListener(Neuron.EventTypes.ATTACHED, this.hearNeuronAttached, this);
             neuron.addEventListener(Neuron.EventTypes.DETACHED, this.hearNeuronDetached, this);
-            neuron.addEventListener(Neuron.EventTypes.READY_TO_TICK, this.hearNeuronReadyToTick, this);
-            neuron.addEventListener(Neuron.EventTypes.READY_TO_TRAIN, this.hearNeuronReadyToTrain, this);
             if (neuron.isAttached()) {
                 neuron.detach();
             }
@@ -289,13 +337,14 @@ require('bugpack').context("*", function(bugpack) {
          */
         doRemoveNeuron: function(neuron) {
             this.neuronList.remove(neuron);
+            if (this.neuronProcessor) {
+                this.neuronProcessor.removeNeuron(neuron);
+            }
             if (neuron.isAttached()) {
                 neuron.detach();
             }
             neuron.removeEventListener(Neuron.EventTypes.ATTACHED, this.hearNeuronAttached, this);
             neuron.removeEventListener(Neuron.EventTypes.DETACHED, this.hearNeuronDetached, this);
-            neuron.removeEventListener(Neuron.EventTypes.READY_TO_TICK, this.hearNeuronReadyToTick, this);
-            neuron.removeEventListener(Neuron.EventTypes.READY_TO_TRAIN, this.hearNeuronReadyToTrain, this);
         },
 
         /**
@@ -329,30 +378,6 @@ require('bugpack').context("*", function(bugpack) {
         hearNeuronDetached: function(event) {
             var neuron = event.getData().neuron;
             this.doDetachNeuron(neuron);
-        },
-
-        /**
-         * @private
-         * @param {Event} event
-         */
-        hearNeuronReadyToTick: function(event) {
-            var neuron = event.getData().neuron;
-            //TODO BRN: Here we can prioritize tick processing. For now just tick each neuron on timeout to simulate async.
-            setTimeout(function() {
-                neuron.tick();
-            }, 0);
-        },
-
-        /**
-         * @private
-         * @param {Event} event
-         */
-        hearNeuronReadyToTrain: function(event) {
-            var neuron = event.getData().neuron;
-            //TODO BRN: Here we can prioritize train processing. For now just train each neuron on timeout to simulate async.
-            setTimeout(function() {
-                neuron.train();
-            }, 0);
         }
     });
 

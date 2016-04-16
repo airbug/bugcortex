@@ -520,10 +520,30 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @protected
+         * @param {number} bit
+         * @param {number} tick
+         */
+        addRandomChildNeuronsWithBitAtTick: function(bit, tick) {
+            var _this = this;
+            var subLayerList = this.getNeuralLayer().retrieveAttachedSubLayersWithNeurons();
+            if (subLayerList.getCount() > 0) {
+                var maxNumberRandomNeurons = 2;
+                subLayerList.forEach(function(subLayer) {
+                    _this.addNumberRandomChildNeuronsFromLayerWithBitAtTick(maxNumberRandomNeurons, subLayer, bit, tick);
+                });
+            }
+        },
+
+        /**
+         * @protected
          */
         checkAndProcessReadyToTick: function() {
             if (this.isReadyToTick()) {
-                this.dispatchEvent(new Event(Neuron.EventTypes.READY_TO_TICK, {neuron: this}));
+                var nextTick    = this.currentTick + 1;
+                this.dispatchEvent(new Event(Neuron.EventTypes.READY_TO_TICK, {
+                    neuron: this,
+                    tick: nextTick
+                }));
             }
         },
 
@@ -532,7 +552,11 @@ require('bugpack').context("*", function(bugpack) {
          */
         checkAndProcessReadyToTrain: function() {
             if (this.isReadyToTrain()) {
-                this.dispatchEvent(new Event(Neuron.EventTypes.READY_TO_TRAIN, {neuron: this}));
+                var nextTrainingTick    = this.currentTrainingTick + 1;
+                this.dispatchEvent(new Event(Neuron.EventTypes.READY_TO_TRAIN, {
+                    neuron: this,
+                    tick: nextTrainingTick
+                }));
             }
         },
 
@@ -658,7 +682,7 @@ require('bugpack').context("*", function(bugpack) {
                     tick: currentTick
                 }));
             } else {
-                throw Throwables.bug("BadBit", {}, "Bad bit value received from call to doCalculateBitForTick");
+                throw Throwables.bug("BadBit", {}, "Bad bit value received from call to doCalculateBitForTick - bit:" + bit);
             }
         },
 
@@ -691,6 +715,26 @@ require('bugpack').context("*", function(bugpack) {
                 };
                 this.addEventListener(Neuron.EventTypes.SEEDED, hearSeeded);
                 this.seed();
+            } else {
+                callback();
+            }
+        },
+
+        /**
+         * @protected
+         * @param {number} trainingTick
+         * @param {function(Throwable=)} callback
+         */
+        ensureTick: function(trainingTick, callback) {
+            var _this = this;
+            if (this.getCurrentTick() < trainingTick) {
+                var hearTick = function(event) {
+                    if (_this.getCurrentTick() >= trainingTick) {
+                        _this.removeEventListener(Neuron.EventTypes.TICK, hearTick);
+                        callback();
+                    }
+                };
+                this.addEventListener(Neuron.EventTypes.TICK, hearTick);
             } else {
                 callback();
             }
@@ -771,6 +815,7 @@ require('bugpack').context("*", function(bugpack) {
          * @abstract
          * @protected
          * @param {number} tick
+         * @return {number}
          */
         doCalculateBitForTick: function(tick) {
             throw Throwables.bug("AbstractMethodNotImplemented", {}, "Must implement Neuron.doCalculateBitForTick");
@@ -814,6 +859,24 @@ require('bugpack').context("*", function(bugpack) {
             }
             for (var i = 0; i < maxNumberRandomNeurons; i++) {
                 this.addRandomChildNeuronFromNeuronList(selectableNeurons);
+            }
+        },
+
+        /**
+         * @private
+         * @param {number} maxNumberRandomNeurons
+         * @param {NeuralLayer} neuralLayer
+         * @param {number} bit
+         * @param {number} tick
+         */
+        addNumberRandomChildNeuronsFromLayerWithBitAtTick: function(maxNumberRandomNeurons, neuralLayer, bit, tick) {
+            var selectableNeurons = neuralLayer.retrieveAttachedNeuronsWithBitAtTick(bit, tick);
+            selectableNeurons.removeAll(this.getChildNeuronList());
+            if (selectableNeurons.getCount() < maxNumberRandomNeurons) {
+                maxNumberRandomNeurons = selectableNeurons.getCount();
+            }
+            for (var i = 0; i < maxNumberRandomNeurons; i++) {
+                this.addRandomChildNeuronFromNeuronList(Collections.list(selectableNeurons));
             }
         },
 

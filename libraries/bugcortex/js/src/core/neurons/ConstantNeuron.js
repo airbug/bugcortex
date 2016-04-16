@@ -9,7 +9,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugcortex.InputNeuron')
+//@Export('bugcortex.ConstantNeuron')
 
 //@Require('Class')
 //@Require('Collections')
@@ -42,9 +42,9 @@ require('bugpack').context("*", function(bugpack) {
      * @class
      * @extends {Neuron}
      */
-    var InputNeuron = Class.extend(Neuron, {
+    var ConstantNeuron = Class.extend(Neuron, {
 
-        _name: "bugcortex.InputNeuron",
+        _name: "bugcortex.ConstantNeuron",
 
 
         //-------------------------------------------------------------------------------
@@ -53,11 +53,12 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @constructs
-         * @param {InputLayer} inputLayer
+         * @param {ConstantLayer} constantLayer
+         * @param {number} constantBit
          */
-        _constructor: function(inputLayer) {
+        _constructor: function(constantLayer, constantBit) {
 
-            this._super(inputLayer);
+            this._super(constantLayer);
 
 
             //-------------------------------------------------------------------------------
@@ -66,9 +67,9 @@ require('bugpack').context("*", function(bugpack) {
 
             /**
              * @private
-             * @type {Map.<number, number>}
+             * @type {number}
              */
-            this.tickToInputBitMap = Collections.map();
+            this.constantBit    = constantBit;
         },
 
 
@@ -77,11 +78,11 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         /**
-         * @param {InputLayer} inputLayer
-         * @return {InputNeuron}
+         * @param {ConstantLayer} constantLayer
+         * @return {ConstantNeuron}
          */
-        init: function(inputLayer) {
-            var _this = this._super(inputLayer);
+        init: function(constantLayer) {
+            var _this = this._super(constantLayer);
             if (_this) {
                 _this.seedState = Neuron.SeedState.SEEDED;
             }
@@ -94,10 +95,10 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         /**
-         * @return {Map.<number, number>}
+         * @return {number}
          */
-        getTickToInputBitMap: function() {
-            return this.tickToInputBitMap;
+        getConstantBit: function() {
+            return this.constantBit;
         },
 
 
@@ -106,11 +107,9 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         /**
-         * @param {number} inputBit
          * @param {number} tick
          */
-        feedNeuronInputBitForTick: function(inputBit, tick) {
-            this.tickToInputBitMap.put(tick, inputBit);
+        tickNeuron: function(tick) {
             this.seedCurrentTick(tick - 1);
             this.checkAndProcessReadyToTick();
         },
@@ -126,8 +125,8 @@ require('bugpack').context("*", function(bugpack) {
          * @return {number}
          */
         doCalculateBitForTick: function(tick) {
-            if (this.tickToInputBitMap.containsKey(tick)) {
-                return this.tickToInputBitMap.get(tick);
+            if (this.getCurrentTick() >= tick) {
+                return this.constantBit;
             } else {
                 throw Throwables.exception("TickOutOfSync", {}, "Could not find bit for tick '" + tick + "'");
             }
@@ -144,13 +143,6 @@ require('bugpack').context("*", function(bugpack) {
             this.ensureTick(currentTrainingTick, function() {
                 _this.processTrainingContextSet(trainingContextSet, currentTrainingTick, callback);
             });
-        },
-
-        /**
-         * @protected
-         */
-        doSeeding: function() {
-            throw Throwables.bug("IllegalState", {}, "This should not be called in InputNeuron");
         },
 
 
@@ -183,5 +175,5 @@ require('bugpack').context("*", function(bugpack) {
     // Exports
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugcortex.InputNeuron', InputNeuron);
+    bugpack.export('bugcortex.ConstantNeuron', ConstantNeuron);
 });

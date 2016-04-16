@@ -18,8 +18,10 @@
 //@Require('Flows')
 //@Require('ObjectUtil')
 //@Require('Throwables')
+//@Require('bugcortex.INeuralConstant')
 //@Require('bugcortex.INeuralInput')
 //@Require('bugcortex.INeuralOutput')
+//@Require('bugcortex.NeuronProcessor')
 //@Require('bugcortex.OutputLayer')
 
 
@@ -40,8 +42,10 @@ require('bugpack').context("*", function(bugpack) {
     var Flows               = bugpack.require('Flows');
     var ObjectUtil          = bugpack.require('ObjectUtil');
     var Throwables          = bugpack.require('Throwables');
+    var INeuralConstant     = bugpack.require('bugcortex.INeuralConstant');
     var INeuralInput        = bugpack.require('bugcortex.INeuralInput');
     var INeuralOutput       = bugpack.require('bugcortex.INeuralOutput');
+    var NeuronProcessor     = bugpack.require('bugcortex.NeuronProcessor');
     var OutputLayer         = bugpack.require('bugcortex.OutputLayer');
 
 
@@ -89,6 +93,12 @@ require('bugpack').context("*", function(bugpack) {
 
             /**
              * @private
+             * @type {Set.<INeuralConstant>}
+             */
+            this.neuralConstantLayerSet      = Collections.set();
+
+            /**
+             * @private
              * @type {BidiMap.<string. INeuralInput>}
              */
             this.neuralInputBidiMap     = Collections.bidiMap();
@@ -98,12 +108,25 @@ require('bugpack').context("*", function(bugpack) {
              * @type {BidiMap.<string. INeuralOutput>}
              */
             this.neuralOutputBidiMap    = Collections.bidiMap();
+
+            /**
+             * @private
+             * @type {NeuronProcessor}
+             */
+            this.neuronProcessor        = new NeuronProcessor();
         },
 
 
         //-------------------------------------------------------------------------------
         // Getters and Setters
         //-------------------------------------------------------------------------------
+
+        /**
+         * @return {Set.<INeuralConstant>}
+         */
+        getNeuralConstantLayerSet: function() {
+            return this.neuralConstantLayerSet;
+        },
 
         /**
          * @return {BidiMap.<string., INeuralInput>}
@@ -119,14 +142,45 @@ require('bugpack').context("*", function(bugpack) {
             return this.neuralOutputBidiMap;
         },
 
+        /**
+         * @return {NeuronProcessor}
+         */
+        getNeuronProcessor: function() {
+            return this.neuronProcessor;
+        },
+
 
         //-------------------------------------------------------------------------------
         // Public Methods
         //-------------------------------------------------------------------------------
 
         /**
+         * @param {ConstantLayer} neuralConstantLayer
+         */
+        addConstantLayer: function(neuralConstantLayer) {
+            if (!Class.doesImplement(neuralConstantLayer, INeuralConstant)) {
+                throw Throwables.illegalArgumentBug("neuralConstantLayer", neuralConstantLayer, "neuralConstantLayer must implement INeuralConstant");
+            }
+            if (!this.neuralConstantLayerSet.contains(neuralConstantLayer)) {
+                this.neuralConstantLayerSet.add(neuralConstantLayer);
+                neuralConstantLayer.attach();
+                neuralConstantLayer.setNeuronProcessor(this.neuronProcessor);
+            }
+        },
+
+        /**
+         * @param {ConstantLayer} neuralConstantLayer
+         */
+        removeConstantLayer: function(neuralConstantLayer) {
+            if (this.neuralConstantLayerSet.contains(neuralConstantLayer)) {
+                this.neuralConstantLayerSet.remove(neuralConstantLayer);
+                neuralConstantLayer.detach();
+            }
+        },
+
+        /**
          * @param {string} name
-         * @param {INeuralInput} neuralInputLayer
+         * @param {InputLayer} neuralInputLayer
          */
         addInputLayer: function(name, neuralInputLayer) {
             if (!Class.doesImplement(neuralInputLayer, INeuralInput)) {
@@ -135,11 +189,12 @@ require('bugpack').context("*", function(bugpack) {
             if (!this.neuralInputBidiMap.containsKey(name) && !this.neuralInputBidiMap.containsValue(neuralInputLayer)) {
                 this.neuralInputBidiMap.put(name, neuralInputLayer);
                 neuralInputLayer.attach();
+                neuralInputLayer.setNeuronProcessor(this.neuronProcessor);
             }
         },
 
         /**
-         * @param {INeuralInput} neuralInputLayer
+         * @param {InputLayer} neuralInputLayer
          */
         removeInputLayer: function(neuralInputLayer) {
             if (this.neuralInputBidiMap.containsValue(neuralInputLayer)) {
@@ -170,7 +225,7 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @param {string} name
-         * @param {INeuralOutput} neuralOutputLayer
+         * @param {OutputLayer} neuralOutputLayer
          */
         addOutputLayer: function(name, neuralOutputLayer) {
             if (!Class.doesImplement(neuralOutputLayer, INeuralOutput)) {
@@ -180,6 +235,7 @@ require('bugpack').context("*", function(bugpack) {
                 this.neuralOutputBidiMap.put(name, neuralOutputLayer);
                 neuralOutputLayer.addEventListener(OutputLayer.EventTypes.OUTPUT_VALUE, this.hearLayerOutputValue, this);
                 neuralOutputLayer.attach();
+                neuralOutputLayer.setNeuronProcessor(this.neuronProcessor);
             }
         },
 
@@ -249,6 +305,10 @@ require('bugpack').context("*", function(bugpack) {
                 neuralInput.inputValue(value);
             });
 
+            this.neuralConstantLayerSet.forEach(function(neuralConstant) {
+                neuralConstant.tickLayer();
+            });
+
             $forInParallel(outputs, function(callback, key, value) {
                 var neuralOutput = _this.neuralOutputBidiMap.getValue(key);
                 neuralOutput.trainValue(value, callback);
@@ -288,6 +348,10 @@ require('bugpack').context("*", function(bugpack) {
             ObjectUtil.forIn(inputs, function(key, value) {
                 var neuralInput = _this.neuralInputBidiMap.getValue(key);
                 neuralInput.inputValue(value);
+            });
+
+            this.neuralConstantLayerSet.forEach(function(neuralConstant) {
+                neuralConstant.tickLayer();
             });
         },
 

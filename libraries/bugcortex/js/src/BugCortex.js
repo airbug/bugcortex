@@ -13,6 +13,7 @@
 
 //@Require('Class')
 //@Require('Obj')
+//@Require('bugcortex.HighLowConstantLayer')
 //@Require('bugcortex.IntegerInputLayer')
 //@Require('bugcortex.IntegerOutputLayer')
 //@Require('bugcortex.NeuralNetwork')
@@ -29,12 +30,13 @@ require('bugpack').context("*", function(bugpack) {
     // BugPack
     //-------------------------------------------------------------------------------
 
-    var Class               = bugpack.require('Class');
-    var Obj                 = bugpack.require('Obj');
-    var IntegerInputLayer   = bugpack.require('bugcortex.IntegerInputLayer');
-    var IntegerOutputLayer  = bugpack.require('bugcortex.IntegerOutputLayer');
-    var NeuralNetwork       = bugpack.require('bugcortex.NeuralNetwork');
-    var OutputLayer         = bugpack.require('bugcortex.OutputLayer');
+    var Class                   = bugpack.require('Class');
+    var Obj                     = bugpack.require('Obj');
+    var HighLowConstantLayer    = bugpack.require('bugcortex.HighLowConstantLayer');
+    var IntegerInputLayer       = bugpack.require('bugcortex.IntegerInputLayer');
+    var IntegerOutputLayer      = bugpack.require('bugcortex.IntegerOutputLayer');
+    var NeuralNetwork           = bugpack.require('bugcortex.NeuralNetwork');
+    var OutputLayer             = bugpack.require('bugcortex.OutputLayer');
 
 
     //-------------------------------------------------------------------------------
@@ -67,24 +69,29 @@ require('bugpack').context("*", function(bugpack) {
             //-------------------------------------------------------------------------------
 
             /**
+             * @type {function(new:HighLowConstantLayer)}
+             */
+            this.HighLowConstantLayer   = HighLowConstantLayer;
+
+            /**
              * @type {function(new:IntegerInputLayer)}
              */
-            this.IntegerInputLayer  = IntegerInputLayer;
+            this.IntegerInputLayer      = IntegerInputLayer;
 
             /**
              * @type {function(new:IntegerOutputLayer)}
              */
-            this.IntegerOutputLayer = IntegerOutputLayer;
+            this.IntegerOutputLayer     = IntegerOutputLayer;
 
             /**
              * @type {function(new:NeuralNetwork)}
              */
-            this.NeuralNetwork      = NeuralNetwork;
+            this.NeuralNetwork          = NeuralNetwork;
 
             /**
              * @type {function(new:OutputLayer)}
              */
-            this.OutputLayer        = OutputLayer;
+            this.OutputLayer            = OutputLayer;
         }
 
 

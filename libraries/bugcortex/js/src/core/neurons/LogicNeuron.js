@@ -9,7 +9,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('bugcortex.OutputNeuron')
+//@Export('bugcortex.LogicNeuron')
 
 //@Require('Class')
 //@Require('Collections')
@@ -55,9 +55,9 @@ require('bugpack').context("*", function(bugpack) {
      * @class
      * @extends {Neuron}
      */
-    var OutputNeuron = Class.extend(Neuron, {
+    var LogicNeuron = Class.extend(Neuron, {
 
-        _name: "bugcortex.OutputNeuron",
+        _name: "bugcortex.LogicNeuron",
 
 
         //-------------------------------------------------------------------------------
@@ -79,15 +79,21 @@ require('bugpack').context("*", function(bugpack) {
 
             /**
              * @private
-             * @type {Neuron}
+             * @type {LogicStatement}
              */
-            this.selectedChildNeuron    = null;
+            this.logicStatement                     = null;
 
             /**
              * @private
-             * @type {Map.<number, number>}
+             * @type {Set.<Neuron>}
              */
-            this.tickToTrainingBitMap   = Collections.map();
+            this.logicStatementNeuronSet            = Collections.set();
+
+            /**
+             * @private
+             * @type {Map.<Neuron, number>}
+             */
+            this.parentNeuronAttachmentStrengthMap  = Collections.map();
         },
 
 
@@ -96,10 +102,17 @@ require('bugpack').context("*", function(bugpack) {
         //-------------------------------------------------------------------------------
 
         /**
-         * @return {Map.<number, number>}
+         * @return {LogicStatement}
          */
-        getTickToTrainingBitMap: function() {
-            return this.tickToTrainingBitMap;
+        getLogicStatement: function() {
+            return this.logicStatement;
+        },
+
+        /**
+         * @return {Set.<Neuron>}
+         */
+        getLogicStatementNeuronSet: function() {
+            return this.logicStatementNeuronSet;
         },
 
 
@@ -113,8 +126,7 @@ require('bugpack').context("*", function(bugpack) {
          * @return {number}
          */
         doCalculateBitForTick: function(tick) {
-            this.ensureChildSelectedForTick(tick);
-            return this.selectedChildNeuron.getBitForTick(tick);
+            return this.logicStatement.resolveLogicForTick(tick) ? 1 : 0;
         },
 
         /**
@@ -138,8 +150,9 @@ require('bugpack').context("*", function(bugpack) {
          */
         doRemoveChildNeuron: function(neuron) {
             this._super(neuron);
-            if (Obj.equals(this.selectedChildNeuron, neuron)) {
-                this.selectedChildNeuron = null;
+            if (this.logicStatementNeuronSet.contains(neuron)) {
+                this.logicStatementNeuronSet.remove(neuron);
+                this.generateLogicStatement();
             }
         },
 
@@ -166,8 +179,12 @@ require('bugpack').context("*", function(bugpack) {
 
         /**
          * @private
-         * @param {number} tick
          */
+        generateLogicStatement: function() {
+
+        },
+
+
         ensureChildSelectedForTick: function(tick) {
             if (!this.selectedChildNeuron) {
                 this.selectRandomChildFromNeuronList(this.retrieveChildNeuronsWithEarliestTickBeforeTick(tick));
@@ -229,20 +246,14 @@ require('bugpack').context("*", function(bugpack) {
                             childNeuronList.remove(childNeuron);
                         }
                     });
-                    var addMoreChildren = true;
                     if (!_this.selectedChildNeuron || !matchList.contains(_this.selectedChildNeuron)) {
                         if (matchList.getCount() > 0) {
                             _this.selectRandomChildFromNeuronList(matchList);
-                            addMoreChildren = false;
                         } else if (mutatedList.getCount() > 0) {
                             _this.selectRandomChildFromNeuronList(mutatedList);
                         } else {
                             _this.selectRandomChildFromNeuronList(childNeuronList);
                         }
-                    }
-
-                    if (addMoreChildren) {
-                        _this.addRandomChildNeuronsWithBitAtTick(trainingBit, currentTrainingTick);
                     }
 
                     var trainingResult = Neuron.TrainingResult.MATCH;
@@ -271,5 +282,5 @@ require('bugpack').context("*", function(bugpack) {
     // Exports
     //-------------------------------------------------------------------------------
 
-    bugpack.export('bugcortex.OutputNeuron', OutputNeuron);
+    bugpack.export('bugcortex.LogicNeuron', LogicNeuron);
 });
